@@ -38,13 +38,14 @@ current :: proc(lexer: Lexer) -> u8 {
 	return lexer.src[lexer.cursor]
 }
 
+// joy of programming my ass
 tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> []Token {
 	tokens := make([dynamic]Token, allocator)
 	for lexer.cursor < len(lexer.src) {
 		ch := current(lexer^)
 		if ch == '[' {
 			if peek(lexer^) == '[' {
-				append(&tokens, Token(Token_Text{"["}))
+				append(&tokens, Token_Text{"["})
 				advance(lexer, 2)
 			} else {
 				advance(lexer)
@@ -62,7 +63,7 @@ tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> []Token {
 				advance(lexer)
 			}
 		} else if ch == ']' && peek(lexer^) == ']' {
-			append(&tokens, Token(Token_Text{"]"}))
+			append(&tokens, Token_Text{"]"})
 			advance(lexer, 2)
 		} else {
 			start := lexer.cursor
