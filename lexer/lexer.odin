@@ -1,5 +1,7 @@
 package lexer
 
+import "../errors"
+
 Lexer :: struct {
 	src:    string,
 	cursor: int,
@@ -38,8 +40,13 @@ current :: proc(lexer: Lexer) -> u8 {
 	return lexer.src[lexer.cursor]
 }
 
-// joy of programming my ass
-tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> []Token {
+tokenize :: proc(
+	lexer: ^Lexer,
+	allocator := context.allocator,
+) -> (
+	[]Token,
+	Maybe(errors.Parse_Error),
+) {
 	tokens := make([dynamic]Token, allocator)
 	for lexer.cursor < len(lexer.src) {
 		ch := current(lexer^)
@@ -52,6 +59,13 @@ tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> []Token {
 				start := lexer.cursor
 				for lexer.cursor < len(lexer.src) && current(lexer^) != ']' {
 					advance(lexer)
+				}
+				if lexer.cursor >= len(lexer.src) {
+					return tokens[:], errors.Parse_Error {
+						kind = .Unclosed_Tag,
+						pos = start,
+						src = lexer.src,
+					}
 				}
 				if tag_content := lexer.src[start:lexer.cursor]; len(tag_content) == 0 {
 					append(&tokens, Token_Text{""})
@@ -73,5 +87,5 @@ tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> []Token {
 			append(&tokens, Token_Text{lexer.src[start:lexer.cursor]})
 		}
 	}
-	return tokens[:]
+	return tokens[:], nil
 }

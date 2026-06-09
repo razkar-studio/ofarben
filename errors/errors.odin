@@ -1,4 +1,4 @@
-package ofarben
+package errors
 
 Parse_Error :: struct {
 	kind: Error_Kind,
