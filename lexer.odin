@@ -1,6 +1,4 @@
-package lexer
-
-import "../errors"
+package ofarben
 
 Lexer :: struct {
 	src:    string,
@@ -23,29 +21,32 @@ Token :: union {
 	Token_Close,
 }
 
-new :: proc(src: string) -> Lexer {
+lexer_new :: proc(src: string) -> Lexer {
 	return Lexer{src = src}
 }
 
+@(private = "file")
 peek :: proc(lexer: Lexer) -> u8 {
 	if lexer.cursor + 1 >= len(lexer.src) do return 0
 	return lexer.src[lexer.cursor + 1]
 }
 
+@(private = "file")
 advance :: proc(lexer: ^Lexer, count := 1) {
 	if lexer.cursor < len(lexer.src) do lexer.cursor += count
 }
 
+@(private = "file")
 current :: proc(lexer: Lexer) -> u8 {
 	return lexer.src[lexer.cursor]
 }
 
-tokenize :: proc(
+lexer_tokenize :: proc(
 	lexer: ^Lexer,
 	allocator := context.allocator,
 ) -> (
 	[]Token,
-	Maybe(errors.Parse_Error),
+	Maybe(Parse_Error),
 ) {
 	tokens := make([dynamic]Token, allocator)
 	for lexer.cursor < len(lexer.src) {
@@ -61,7 +62,7 @@ tokenize :: proc(
 					advance(lexer)
 				}
 				if lexer.cursor >= len(lexer.src) {
-					return tokens[:], errors.Parse_Error {
+					return tokens[:], Parse_Error {
 						kind = .Unclosed_Tag,
 						pos = start,
 						src = lexer.src,
