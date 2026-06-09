@@ -1,5 +1,10 @@
 package ofarben
 
+Ground :: enum {
+	Background,
+	Foreground,
+}
+
 Named_Color :: enum {
 	Black,
 	Red,

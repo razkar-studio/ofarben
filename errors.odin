@@ -9,4 +9,7 @@ Parse_Error :: struct {
 Error_Kind :: enum {
 	Unclosed_Tag,
 	Unknown_Tag,
+	Unclosed_Parentheses,
+	Invalid_Argument_Count,
+	Invalid_Argument,
 }
