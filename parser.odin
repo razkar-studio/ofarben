@@ -3,64 +3,90 @@ package ofarben
 import "core:strconv"
 import "core:strings"
 
-@(private = "file")
-_stack: [dynamic]Style
+import "base:runtime"
 
-parser_init :: proc(allocator := context.allocator) {
-	_stack = make([dynamic]Style, allocator)
+@(private = "file")
+_stack: [dynamic]Tag
+
+@(init)
+_ofarben_init :: proc "contextless" () {
+	context = runtime.default_context()
+	_stack = make([dynamic]Tag)
 }
 
-parser_destroy :: proc() {
+@(fini)
+_ofarben_fini :: proc "contextless" () {
+	context = runtime.default_context()
 	delete(_stack)
 }
 
-parse :: proc(tokens: []Token, allocator := context.allocator) -> ([]Span, Maybe(Parse_Error)) {
-	spans := make([dynamic]Span, allocator)
+parse :: proc(
+	tokens: []Token,
+	bleed := false,
+	allocator := context.allocator,
+) -> (
+	string,
+	Maybe(Parse_Error),
+) {
+	sb := strings.builder_make(allocator)
 	for token in tokens {
 		switch type in token {
 		case Token_Text:
-			append(
-				&spans,
-				Span {
-					text = type.text,
-					style = _stack[len(_stack) - 1] if len(_stack) > 0 else Style{},
-				},
-			)
+			encode(_stack[:], &sb)
+			strings.write_string(&sb, type.text)
 		case Token_Tag:
+			tags, err := parse_tags(type.raw, allocator)
+			if err != nil do return strings.to_string(sb), err
+			append(&_stack, ..tags[:])
+			delete(tags)
 		case Token_Close:
+			if type.raw == "" {
+				strings.write_string(&sb, "\x1b[0m")
+				clear(&_stack)
+			} else {
+				// TODO: implement ResetOne
+				clear(&_stack)
+			}
 		}
 	}
-	return spans[:], nil
+	if !bleed do strings.write_string(&sb, "\x1b[0m")
+	return strings.to_string(sb), nil
 }
 
-parse_style :: proc(raw: string, allocator := context.allocator) -> (Style, Maybe(Parse_Error)) {
-	style: Style
+parse_tags :: proc(
+	raw: string,
+	allocator := context.allocator,
+) -> (
+	[dynamic]Tag,
+	Maybe(Parse_Error),
+) {
+	tags := make([dynamic]Tag, allocator)
 	parts := strings.fields(raw, allocator)
 	defer delete(parts)
 	for part in parts {
 		switch part {
 		case "bold":
-			style.bold = true
+			append(&tags, Tag_Emphasis{.Bold})
 		case "dim":
-			style.dim = true
+			append(&tags, Tag_Emphasis{.Dim})
 		case "italic":
-			style.italic = true
+			append(&tags, Tag_Emphasis{.Italic})
 		case "underline":
-			style.underline = true
+			append(&tags, Tag_Emphasis{.Underline})
 		case "double_underline":
-			style.double_underline = true
+			append(&tags, Tag_Emphasis{.Double_Underline})
 		case "strikethrough":
-			style.strikethrough = true
+			append(&tags, Tag_Emphasis{.Strikethrough})
 		case "blink":
-			style.blink = true
+			append(&tags, Tag_Emphasis{.Blink})
 		case "overline":
-			style.overline = true
+			append(&tags, Tag_Emphasis{.Overline})
 		case "invisible":
-			style.invisible = true
+			append(&tags, Tag_Emphasis{.Invisible})
 		case "reverse":
-			style.reverse = true
+			append(&tags, Tag_Emphasis{.Reverse})
 		case "rapid_blink":
-			style.rapid_blink = true
+			append(&tags, Tag_Emphasis{.Rapid_Blink})
 		case:
 			ground := Ground.Background if strings.starts_with(part, "bg:") else Ground.Foreground
 			new_part :=
@@ -68,112 +94,78 @@ parse_style :: proc(raw: string, allocator := context.allocator) -> (Style, Mayb
 			if strings.starts_with(new_part, "rgb(") {
 				new_part = new_part[4:]
 				if !strings.ends_with(new_part, ")") {
-					// FIXME: pos, src
-					return style, Parse_Error{kind = .Unclosed_Parentheses}
+					return tags, Parse_Error{kind = .Unclosed_Parentheses}
 				}
 				new_part = new_part[:len(new_part) - 1]
 				raw_nums := strings.split(new_part, ",", allocator)
 				defer delete(raw_nums)
 				if len(raw_nums) != 3 {
-					// FIXME: pos, src
-					// TODO: invalid argument count requires expected and actual
-					// 		 but enums can't do that?
-					return style, Parse_Error{kind = .Invalid_Argument_Count}
+					return tags, Parse_Error{kind = .Invalid_Argument_Count}
 				}
-				nums := make([dynamic]u8)
-				defer delete(nums)
-				for &n in raw_nums {
-					n = strings.trim_space(n)
-					value, ok := strconv.parse_uint(n)
+				nums: [3]u8
+				for n, i in raw_nums {
+					trimmed := strings.trim_space(n)
+					value, ok := strconv.parse_uint(trimmed)
 					if !ok || value > 255 {
-						// FIXME: pos, src
-						return style, Parse_Error{kind = .Invalid_Argument}
+						return tags, Parse_Error{kind = .Invalid_Argument}
 					}
-					append(&nums, cast(u8)value)
+					nums[i] = auto_cast value
 				}
-				r, g, b := nums[0], nums[1], nums[2]
-				switch ground {
-				case .Background:
-					style.bg = Rgb{r, g, b}
-				case .Foreground:
-					style.fg = Rgb{r, g, b}
-				}
+				append(&tags, Tag_Color{color = Rgb{nums[0], nums[1], nums[2]}, ground = ground})
 			} else if strings.starts_with(new_part, "ansi(") {
 				new_part = new_part[5:]
 				if !strings.ends_with(new_part, ")") {
-					// FIXME: pos, src
-					return style, Parse_Error{kind = .Unclosed_Parentheses}
+					return tags, Parse_Error{kind = .Unclosed_Parentheses}
 				}
 				new_part = new_part[:len(new_part) - 1]
-				raw_nums := strings.split(new_part, ",", allocator)
-				defer delete(raw_nums)
-				if len(raw_nums) != 1 {
-					// FIXME: pos, src
-					// TODO: invalid argument count requires expected and actual
-					// 		 but enums can't do that?
-					return style, Parse_Error{kind = .Invalid_Argument_Count}
-				}
-				value, ok := strconv.parse_uint(raw_nums[0])
+				value, ok := strconv.parse_uint(strings.trim_space(new_part))
 				if !ok || value > 255 {
-					// FIXME: pos, src
-					return style, Parse_Error{kind = .Invalid_Argument}
+					return tags, Parse_Error{kind = .Invalid_Argument}
 				}
-				ansi := cast(u8)value
-				switch ground {
-				case .Background:
-					style.bg = Ansi256{ansi}
-				case .Foreground:
-					style.fg = Ansi256{ansi}
-				}
+				append(&tags, Tag_Color{color = Ansi256{auto_cast value}, ground = ground})
 			} else {
+				color: Maybe(Named_Color)
 				switch new_part {
 				case "black":
-					set_color(&style, ground, .Black)
+					color = Named_Color.Black
 				case "bright-black":
-					set_color(&style, ground, .Bright_Black)
+					color = Named_Color.Bright_Black
 				case "red":
-					set_color(&style, ground, .Red)
+					color = Named_Color.Red
 				case "bright-red":
-					set_color(&style, ground, .Bright_Red)
+					color = Named_Color.Bright_Red
 				case "green":
-					set_color(&style, ground, .Green)
+					color = Named_Color.Green
 				case "bright-green":
-					set_color(&style, ground, .Bright_Green)
+					color = Named_Color.Bright_Green
 				case "yellow":
-					set_color(&style, ground, .Yellow)
+					color = Named_Color.Yellow
 				case "bright-yellow":
-					set_color(&style, ground, .Bright_Yellow)
+					color = Named_Color.Bright_Yellow
 				case "blue":
-					set_color(&style, ground, .Blue)
+					color = Named_Color.Blue
 				case "bright-blue":
-					set_color(&style, ground, .Bright_Blue)
+					color = Named_Color.Bright_Blue
 				case "magenta":
-					set_color(&style, ground, .Magenta)
+					color = Named_Color.Magenta
 				case "bright-magenta":
-					set_color(&style, ground, .Bright_Magenta)
+					color = Named_Color.Bright_Magenta
 				case "cyan":
-					set_color(&style, ground, .Cyan)
+					color = Named_Color.Cyan
 				case "bright-cyan":
-					set_color(&style, ground, .Bright_Cyan)
+					color = Named_Color.Bright_Cyan
 				case "white":
-					set_color(&style, ground, .White)
+					color = Named_Color.White
 				case "bright-white":
-					set_color(&style, ground, .Bright_White)
+					color = Named_Color.Bright_White
 				case:
-					// FIXME: pos, src
-					return style, Parse_Error{kind = .Unknown_Tag}
+					return tags, Parse_Error{kind = .Unknown_Tag}
+				}
+				if c, ok := color.?; ok {
+					append(&tags, Tag_Color{color = c, ground = ground})
 				}
 			}
 		}
 	}
-	return style, nil
-}
-
-set_color :: proc(style: ^Style, ground: Ground, color: Color) {
-	switch ground {
-	case .Background:
-		style.bg = color
-	case .Foreground:
-		style.fg = color
-	}
+	return tags, nil
 }

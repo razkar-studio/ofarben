@@ -41,13 +41,7 @@ current :: proc(lexer: Lexer) -> u8 {
 	return lexer.src[lexer.cursor]
 }
 
-lexer_tokenize :: proc(
-	lexer: ^Lexer,
-	allocator := context.allocator,
-) -> (
-	[]Token,
-	Maybe(Parse_Error),
-) {
+tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> ([]Token, Maybe(Parse_Error)) {
 	tokens := make([dynamic]Token, allocator)
 	for lexer.cursor < len(lexer.src) {
 		ch := current(lexer^)
