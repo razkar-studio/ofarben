@@ -45,12 +45,22 @@ parse :: proc(
 				strings.write_string(&sb, "\x1b[0m")
 				clear(&_stack)
 			} else {
-				// TODO: implement ResetOne
-				clear(&_stack)
+				tags, _ := parse_tags(type.raw, type.pos, src, allocator)
+				for reset_tag in tags {
+					for i := len(_stack) - 1; i >= 0; i -= 1 {
+						if _stack[i] == reset_tag {
+							ordered_remove(&_stack, i)
+							break
+						}
+					}
+				}
+				delete(tags)
+				strings.write_string(&sb, "\x1b[0m")
+				encode(_stack[:], &sb)
 			}
 		}
 	}
-	if !bleed do strings.write_string(&sb, "\x1b[0m")
+	if !bleed {strings.write_string(&sb, "\x1b[0m"); clear(&_stack)}
 	return strings.to_string(sb), nil
 }
 

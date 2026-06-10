@@ -11,7 +11,7 @@ pipeline :: proc(formatted: string, bleed := false, allocator := context.allocat
 	tokens, tok_maybe_err := tokenize(&l)
 	err, ok := tok_maybe_err.?
 	if ok {fmt.eprintln(format_error(err)); os.exit(1)}
-	result, parse_maybe_err := parse(formatted, tokens, bleed)
+	result, parse_maybe_err := parse(formatted, tokens, bleed, allocator)
 	err, ok = parse_maybe_err.?
 	if ok {fmt.eprintln(format_error(err)); os.exit(1)}
 	return result
@@ -31,144 +31,175 @@ untag :: proc(s: string, allocator := context.allocator) -> string {
 
 // --- format ---
 
-csprintf :: proc(markup: string, args: ..any) -> string {
-	return pipeline(fmt.tprintf(markup, ..args))
+csprintf :: proc(markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.tprintf(markup, ..args), !reset)
 }
 
-csprintfln :: proc(markup: string, args: ..any) -> string {
-	return pipeline(fmt.tprintfln(markup, ..args))
+csprintfln :: proc(markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.tprintfln(markup, ..args), !reset)
 }
 
-csprint :: proc(args: ..any, sep := " ") -> string {
-	return pipeline(fmt.tprint(..args, sep = sep))
+csprint :: proc(args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.tprint(..args, sep = sep), !reset)
 }
 
-csprintln :: proc(args: ..any, sep := " ") -> string {
-	return pipeline(fmt.tprintln(..args, sep = sep))
+csprintln :: proc(args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.tprintln(..args, sep = sep), !reset)
 }
 
 // --- stdout ---
 
-cprintf :: proc(markup: string, args: ..any, flush := true) {
-	fmt.printf(pipeline(fmt.tprintf(markup, ..args)), flush = flush)
+cprintf :: proc(markup: string, args: ..any, flush := true, reset := true) {
+	fmt.printf(pipeline(fmt.tprintf(markup, ..args), !reset), flush = flush)
 }
 
-cprintfln :: proc(markup: string, args: ..any, flush := true) {
-	fmt.printfln(pipeline(fmt.tprintf(markup, ..args)), flush = flush)
+cprintfln :: proc(markup: string, args: ..any, flush := true, reset := true) {
+	fmt.printfln(pipeline(fmt.tprintf(markup, ..args), !reset), flush = flush)
 }
 
-cprint :: proc(args: ..any, sep := " ", flush := true) {
-	fmt.print(pipeline(fmt.tprint(..args, sep = sep)), flush = flush)
+cprint :: proc(args: ..any, sep := " ", flush := true, reset := true) {
+	fmt.print(pipeline(fmt.tprint(..args, sep = sep), !reset), flush = flush)
 }
 
-cprintln :: proc(args: ..any, sep := " ", flush := true) {
-	fmt.println(pipeline(fmt.tprintln(..args, sep = sep)), flush = flush)
+cprintln :: proc(args: ..any, sep := " ", flush := true, reset := true) {
+	fmt.println(pipeline(fmt.tprintln(..args, sep = sep), !reset), flush = flush)
 }
 
 // --- stderr ---
 
-ceprintf :: proc(markup: string, args: ..any, flush := true) {
-	fmt.eprintf(pipeline(fmt.tprintf(markup, ..args)), flush = flush)
+ceprintf :: proc(markup: string, args: ..any, flush := true, reset := true) {
+	fmt.eprintf(pipeline(fmt.tprintf(markup, ..args), !reset), flush = flush)
 }
 
-ceprintfln :: proc(markup: string, args: ..any, flush := true) {
-	fmt.eprintfln(pipeline(fmt.tprintf(markup, ..args)), flush = flush)
+ceprintfln :: proc(markup: string, args: ..any, flush := true, reset := true) {
+	fmt.eprintfln(pipeline(fmt.tprintf(markup, ..args), !reset), flush = flush)
 }
 
-ceprint :: proc(args: ..any, sep := " ", flush := true) {
-	fmt.eprint(pipeline(fmt.tprint(..args, sep = sep)), flush = flush)
+ceprint :: proc(args: ..any, sep := " ", flush := true, reset := true) {
+	fmt.eprint(pipeline(fmt.tprint(..args, sep = sep), !reset), flush = flush)
 }
 
-ceprintln :: proc(args: ..any, sep := " ", flush := true) {
-	fmt.eprintln(pipeline(fmt.tprintln(..args, sep = sep)), flush = flush)
+ceprintln :: proc(args: ..any, sep := " ", flush := true, reset := true) {
+	fmt.eprintln(pipeline(fmt.tprintln(..args, sep = sep), !reset), flush = flush)
 }
 
 // --- heap allocated ---
 
-caprint :: proc(args: ..any, sep := " ", allocator := context.allocator) -> string {
-	return pipeline(fmt.aprint(..args, sep = sep, allocator = allocator), allocator = allocator)
+caprint :: proc(args: ..any, sep := " ", reset := true, allocator := context.allocator) -> string {
+	return pipeline(
+		fmt.aprint(..args, sep = sep, allocator = allocator),
+		bleed = !reset,
+		allocator = allocator,
+	)
 }
 
-caprintln :: proc(args: ..any, sep := " ", allocator := context.allocator) -> string {
-	return pipeline(fmt.aprintln(..args, sep = sep, allocator = allocator), allocator = allocator)
+caprintln :: proc(
+	args: ..any,
+	sep := " ",
+	reset := true,
+	allocator := context.allocator,
+) -> string {
+	return pipeline(
+		fmt.aprintln(..args, sep = sep, allocator = allocator),
+		bleed = !reset,
+		allocator = allocator,
+	)
 }
 
-caprintf :: proc(markup: string, args: ..any, allocator := context.allocator) -> string {
-	return pipeline(fmt.aprintf(markup, ..args, allocator = allocator), allocator = allocator)
+caprintf :: proc(
+	markup: string,
+	args: ..any,
+	reset := true,
+	allocator := context.allocator,
+) -> string {
+	return pipeline(
+		fmt.aprintf(markup, ..args, allocator = allocator),
+		bleed = !reset,
+		allocator = allocator,
+	)
 }
 
-caprintfln :: proc(markup: string, args: ..any, allocator := context.allocator) -> string {
-	return pipeline(fmt.aprintfln(markup, ..args, allocator = allocator), allocator = allocator)
+caprintfln :: proc(
+	markup: string,
+	args: ..any,
+	reset := true,
+	allocator := context.allocator,
+) -> string {
+	return pipeline(
+		fmt.aprintfln(markup, ..args, allocator = allocator),
+		bleed = !reset,
+		allocator = allocator,
+	)
 }
 
 // --- byte buffer ---
 
-cbprint :: proc(buf: []byte, args: ..any, sep := " ") -> string {
-	return pipeline(fmt.bprint(buf, ..args, sep = sep))
+cbprint :: proc(buf: []byte, args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.bprint(buf, ..args, sep = sep), !reset)
 }
 
-cbprintln :: proc(buf: []byte, args: ..any, sep := " ") -> string {
-	return pipeline(fmt.bprintln(buf, ..args, sep = sep))
+cbprintln :: proc(buf: []byte, args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.bprintln(buf, ..args, sep = sep), !reset)
 }
 
-cbprintf :: proc(buf: []byte, markup: string, args: ..any) -> string {
-	return pipeline(fmt.bprintf(buf, markup, ..args))
+cbprintf :: proc(buf: []byte, markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.bprintf(buf, markup, ..args), !reset)
 }
 
-cbprintfln :: proc(buf: []byte, markup: string, args: ..any) -> string {
-	return pipeline(fmt.bprintfln(buf, markup, ..args))
+cbprintfln :: proc(buf: []byte, markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.bprintfln(buf, markup, ..args), !reset)
 }
 
 // --- strings.Builder ---
 
-csbprint :: proc(buf: ^strings.Builder, args: ..any, sep := " ") -> string {
-	return pipeline(fmt.sbprint(buf, ..args, sep = sep))
+csbprint :: proc(buf: ^strings.Builder, args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.sbprint(buf, ..args, sep = sep), !reset)
 }
 
-csbprintln :: proc(buf: ^strings.Builder, args: ..any, sep := " ") -> string {
-	return pipeline(fmt.sbprintln(buf, ..args, sep = sep))
+csbprintln :: proc(buf: ^strings.Builder, args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.sbprintln(buf, ..args, sep = sep), !reset)
 }
 
-csbprintf :: proc(buf: ^strings.Builder, markup: string, args: ..any) -> string {
-	return pipeline(fmt.sbprintf(buf, markup, ..args))
+csbprintf :: proc(buf: ^strings.Builder, markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.sbprintf(buf, markup, ..args), !reset)
 }
 
-csbprintfln :: proc(buf: ^strings.Builder, markup: string, args: ..any) -> string {
-	return pipeline(fmt.sbprintfln(buf, markup, ..args))
+csbprintfln :: proc(buf: ^strings.Builder, markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.sbprintfln(buf, markup, ..args), !reset)
 }
 
 // --- writer ---
 
-cwprint :: proc(w: io.Writer, args: ..any, sep := " ", flush := true) {
-	io.write_string(w, pipeline(fmt.tprint(..args, sep = sep)))
+cwprint :: proc(w: io.Writer, args: ..any, sep := " ", flush := true, reset := true) {
+	io.write_string(w, pipeline(fmt.tprint(..args, sep = sep), !reset))
 }
 
-cwprintln :: proc(w: io.Writer, args: ..any, sep := " ", flush := true) {
-	io.write_string(w, pipeline(fmt.tprintln(..args, sep = sep)))
+cwprintln :: proc(w: io.Writer, args: ..any, sep := " ", flush := true, reset := true) {
+	io.write_string(w, pipeline(fmt.tprintln(..args, sep = sep), !reset))
 }
 
-cwprintf :: proc(w: io.Writer, markup: string, args: ..any, flush := true) {
-	io.write_string(w, pipeline(fmt.tprintf(markup, ..args)))
+cwprintf :: proc(w: io.Writer, markup: string, args: ..any, flush := true, reset := true) {
+	io.write_string(w, pipeline(fmt.tprintf(markup, ..args), !reset))
 }
 
-cwprintfln :: proc(w: io.Writer, markup: string, args: ..any, flush := true) {
-	io.write_string(w, pipeline(fmt.tprintfln(markup, ..args)))
+cwprintfln :: proc(w: io.Writer, markup: string, args: ..any, flush := true, reset := true) {
+	io.write_string(w, pipeline(fmt.tprintfln(markup, ..args), !reset))
 }
 
 // --- temp-allocated ---
 
-ctprint :: proc(args: ..any, sep := " ") -> string {
-	return pipeline(fmt.tprint(..args, sep = sep))
+ctprint :: proc(args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.tprint(..args, sep = sep), !reset)
 }
 
-ctprintln :: proc(args: ..any, sep := " ") -> string {
-	return pipeline(fmt.tprintln(..args, sep = sep))
+ctprintln :: proc(args: ..any, sep := " ", reset := true) -> string {
+	return pipeline(fmt.tprintln(..args, sep = sep), !reset)
 }
 
-ctprintf :: proc(markup: string, args: ..any) -> string {
-	return pipeline(fmt.tprintf(markup, ..args))
+ctprintf :: proc(markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.tprintf(markup, ..args), !reset)
 }
 
-ctprintfln :: proc(markup: string, args: ..any) -> string {
-	return pipeline(fmt.tprintfln(markup, ..args))
+ctprintfln :: proc(markup: string, args: ..any, reset := true) -> string {
+	return pipeline(fmt.tprintfln(markup, ..args), !reset)
 }
