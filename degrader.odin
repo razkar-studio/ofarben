@@ -1,6 +1,24 @@
+// Copyright (c) 2026 RazkarStudio
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//    claim that you wrote the original software. If you use this software in
+//    a product, an acknowledgment in the product documentation would be
+//    appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
 package ofarben
 
-@(private)
+@(private = "file")
 NAMED_COLOR_RGB := [Named_Color][3]u8 {
 	.Black          = {0, 0, 0},
 	.Red            = {170, 0, 0},
@@ -20,6 +38,7 @@ NAMED_COLOR_RGB := [Named_Color][3]u8 {
 	.Bright_White   = {255, 255, 255},
 }
 
+@(private)
 degrade_to_ansi16 :: proc(r, g, b: u8) -> Named_Color {
 	best := Named_Color.Black
 	best_dist := max(int)
@@ -37,10 +56,10 @@ degrade_to_ansi16 :: proc(r, g, b: u8) -> Named_Color {
 	return best
 }
 
-@(private)
+@(private = "file")
 CUBE_LEVELS := [6]u8{0, 95, 135, 175, 215, 255}
 
-@(private)
+@(private = "file")
 nearest_cube_level :: proc(v: u8) -> u8 {
 	best := u8(0)
 	best_dist := max(int)
@@ -54,6 +73,7 @@ nearest_cube_level :: proc(v: u8) -> u8 {
 	return best
 }
 
+@(private)
 degrade_to_ansi256 :: proc(r, g, b: u8) -> u8 {
 	ri := nearest_cube_level(r)
 	gi := nearest_cube_level(g)
@@ -61,6 +81,7 @@ degrade_to_ansi256 :: proc(r, g, b: u8) -> u8 {
 	return 16 + ri * 36 + gi * 6 + bi
 }
 
+@(private)
 ansi256_to_rgb :: proc(index: u8) -> (r, g, b: u8) {
 	if index < 16 {
 		rgb := NAMED_COLOR_RGB[Named_Color(index)]

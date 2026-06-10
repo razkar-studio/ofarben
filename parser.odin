@@ -1,3 +1,21 @@
+// Copyright (c) 2026 RazkarStudio
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//    claim that you wrote the original software. If you use this software in
+//    a product, an acknowledgment in the product documentation would be
+//    appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
 package ofarben
 
 import "core:strconv"
@@ -20,6 +38,7 @@ _ofarben_fini :: proc "contextless" () {
 	delete(_stack)
 }
 
+@(private)
 parse :: proc(
 	src: string,
 	tokens: []Token,
@@ -64,6 +83,7 @@ parse :: proc(
 	return strings.to_string(sb), nil
 }
 
+@(private = "file")
 parse_tags :: proc(
 	raw: string,
 	pos: int,
@@ -112,6 +132,7 @@ parse_tags :: proc(
 						pos = pos,
 						src = src,
 						raw = raw,
+						value_pos = int(uintptr(raw_data(new_part)) - uintptr(raw_data(src))) - 1,
 					}
 				}
 				new_part = new_part[:len(new_part) - 1]
@@ -123,6 +144,8 @@ parse_tags :: proc(
 						pos = pos,
 						src = src,
 						raw = raw,
+						value = new_part,
+						value_pos = int(uintptr(raw_data(new_part)) - uintptr(raw_data(src))),
 						expected = 3,
 						got = len(raw_nums),
 					}
@@ -137,6 +160,7 @@ parse_tags :: proc(
 							pos = pos,
 							src = src,
 							raw = raw,
+							value_pos = int(uintptr(raw_data(trimmed)) - uintptr(raw_data(src))),
 							value = trimmed,
 							type_name = "u8",
 						}
@@ -152,6 +176,7 @@ parse_tags :: proc(
 						pos = pos,
 						src = src,
 						raw = raw,
+						value_pos = int(uintptr(raw_data(new_part)) - uintptr(raw_data(src))) - 1,
 					}
 				}
 				new_part = new_part[:len(new_part) - 1]
@@ -163,17 +188,21 @@ parse_tags :: proc(
 						pos = pos,
 						src = src,
 						raw = raw,
+						value = new_part,
+						value_pos = int(uintptr(raw_data(new_part)) - uintptr(raw_data(src))),
 						expected = 1,
 						got = len(raw_nums),
 					}
 				}
-				value, ok := strconv.parse_uint(strings.trim_space(new_part))
+				trimmed := strings.trim_space(new_part)
+				value, ok := strconv.parse_uint(trimmed)
 				if !ok || value > 255 {
 					return tags, Parse_Error {
 						kind = .Invalid_Argument,
 						pos = pos,
 						src = src,
 						raw = raw,
+						value_pos = int(uintptr(raw_data(trimmed)) - uintptr(raw_data(src))),
 						value = strings.trim_space(new_part),
 						type_name = "u8",
 					}
@@ -193,6 +222,7 @@ parse_tags :: proc(
 							pos = pos,
 							src = src,
 							raw = raw,
+							value_pos = int(uintptr(raw_data(hex)) - uintptr(raw_data(src))),
 							value = hex,
 							type_name = "hex digit",
 						}
@@ -210,6 +240,7 @@ parse_tags :: proc(
 							pos = pos,
 							src = src,
 							raw = raw,
+							value_pos = int(uintptr(raw_data(hex)) - uintptr(raw_data(src))),
 							value = hex,
 							type_name = "hex digit",
 						}
@@ -223,6 +254,8 @@ parse_tags :: proc(
 						pos = pos,
 						src = src,
 						raw = raw,
+						value = hex,
+						value_pos = int(uintptr(raw_data(hex)) - uintptr(raw_data(src))),
 						expected = 3,
 						got = len(hex),
 					}
@@ -264,7 +297,14 @@ parse_tags :: proc(
 				case "bright-white":
 					color = Named_Color.Bright_White
 				case:
-					return tags, Parse_Error{kind = .Unknown_Tag, pos = pos, src = src, raw = raw}
+					return tags, Parse_Error {
+						kind = .Unknown_Tag,
+						pos = pos,
+						src = src,
+						raw = raw,
+						value = new_part,
+						value_pos = int(uintptr(raw_data(new_part)) - uintptr(raw_data(src))),
+					}
 				}
 				if c, ok := color.?; ok {
 					append(&tags, Tag_Color{color = c, ground = ground})
@@ -275,6 +315,7 @@ parse_tags :: proc(
 	return tags, nil
 }
 
+@(private = "file")
 split_tag_parts :: proc(raw: string, allocator := context.allocator) -> []string {
 	parts := make([dynamic]string, allocator)
 	depth := 0
