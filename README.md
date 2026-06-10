@@ -36,8 +36,6 @@ import "path/to/ofarben"
 
 ## Quick Start
 
-## Quick Start
-
 ```odin
 import "ofarben"
 
