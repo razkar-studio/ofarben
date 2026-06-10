@@ -19,20 +19,7 @@
 package ofarben
 
 main :: proc() {
-	cprintfln("[rgb(255,100,0)]rgb color")
-	cprintfln("[bold ansi(200)]ansi256 color", reset = false)
-	cprintfln("[/ansi(200)]i'm bold[/bold] [red]named color", reset = false)
-	cprintfln("should be red]")
-	cprintln(untag("[red]"))
-	// cprintfln("[rgb(hey,whats,good)]test") // Invalid_Argument - 'hey'
-	// cprintfln("[rgb(300,0,0)]test") // Invalid_Argument - overflow
-	// cprintfln("[rgb(1,2,3,4)]test") // Invalid_Argument_Count - 4 not 3
-	// cprintfln("[rgb(1,2]test") // Unclosed_Parentheses
-	// cprintfln("[ansi(300)]test") // Invalid_Argument - overflow
-	// cprintfln("[ansi(1,2)]test") // Invalid_Argument_Count - 2 not 1
-	// cprintfln("[ansi(hey]test") // Unclosed_Parentheses
-	// cprintfln("[#gg0000]test") // Invalid_Argument - bad hex
-	// cprintfln("[#ffff]test") // Invalid_Argument_Count - 5 digits
-	// cprintfln("[bold blorf red]test") // Unknown_Tag
-	// cprintfln("[bold red") // Unclosed_Tag
+	cprintfln("[bold red]Error:[/] something went wrong.")
+	cprintfln("[green]Success:[/] operation completed.")
+	cprintfln("[bg:blue white]Highlighted text[/]")
 }
