@@ -1,7 +1,5 @@
 package ofarben
 
-import "core:fmt"
-
 main :: proc() {
-	cprintln("[bold red]Error:[/] something went wrong.")
+	cprintln("[#ff00aa]Error:[/] something went wrong.")
 }

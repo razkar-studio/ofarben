@@ -21,6 +21,7 @@ _ofarben_fini :: proc "contextless" () {
 }
 
 parse :: proc(
+	src: string,
 	tokens: []Token,
 	bleed := false,
 	allocator := context.allocator,
@@ -35,7 +36,7 @@ parse :: proc(
 			encode(_stack[:], &sb)
 			strings.write_string(&sb, type.text)
 		case Token_Tag:
-			tags, err := parse_tags(type.raw, allocator)
+			tags, err := parse_tags(type.raw, type.pos, src, allocator)
 			if err != nil do return strings.to_string(sb), err
 			append(&_stack, ..tags[:])
 			delete(tags)
@@ -55,13 +56,15 @@ parse :: proc(
 
 parse_tags :: proc(
 	raw: string,
+	pos: int,
+	src: string,
 	allocator := context.allocator,
 ) -> (
 	[dynamic]Tag,
 	Maybe(Parse_Error),
 ) {
 	tags := make([dynamic]Tag, allocator)
-	parts := strings.fields(raw, allocator)
+	parts := split_tag_parts(raw, allocator)
 	defer delete(parts)
 	for part in parts {
 		switch part {
@@ -94,20 +97,39 @@ parse_tags :: proc(
 			if strings.starts_with(new_part, "rgb(") {
 				new_part = new_part[4:]
 				if !strings.ends_with(new_part, ")") {
-					return tags, Parse_Error{kind = .Unclosed_Parentheses}
+					return tags, Parse_Error {
+						kind = .Unclosed_Parentheses,
+						pos = pos,
+						src = src,
+						raw = raw,
+					}
 				}
 				new_part = new_part[:len(new_part) - 1]
 				raw_nums := strings.split(new_part, ",", allocator)
 				defer delete(raw_nums)
 				if len(raw_nums) != 3 {
-					return tags, Parse_Error{kind = .Invalid_Argument_Count}
+					return tags, Parse_Error {
+						kind = .Invalid_Argument_Count,
+						pos = pos,
+						src = src,
+						raw = raw,
+						expected = 3,
+						got = len(raw_nums),
+					}
 				}
 				nums: [3]u8
 				for n, i in raw_nums {
 					trimmed := strings.trim_space(n)
 					value, ok := strconv.parse_uint(trimmed)
 					if !ok || value > 255 {
-						return tags, Parse_Error{kind = .Invalid_Argument}
+						return tags, Parse_Error {
+							kind = .Invalid_Argument,
+							pos = pos,
+							src = src,
+							raw = raw,
+							value = trimmed,
+							type_name = "u8",
+						}
 					}
 					nums[i] = auto_cast value
 				}
@@ -115,14 +137,87 @@ parse_tags :: proc(
 			} else if strings.starts_with(new_part, "ansi(") {
 				new_part = new_part[5:]
 				if !strings.ends_with(new_part, ")") {
-					return tags, Parse_Error{kind = .Unclosed_Parentheses}
+					return tags, Parse_Error {
+						kind = .Unclosed_Parentheses,
+						pos = pos,
+						src = src,
+						raw = raw,
+					}
 				}
 				new_part = new_part[:len(new_part) - 1]
+				raw_nums := strings.split(new_part, ",", allocator)
+				defer delete(raw_nums)
+				if len(raw_nums) != 1 {
+					return tags, Parse_Error {
+						kind = .Invalid_Argument_Count,
+						pos = pos,
+						src = src,
+						raw = raw,
+						expected = 1,
+						got = len(raw_nums),
+					}
+				}
 				value, ok := strconv.parse_uint(strings.trim_space(new_part))
 				if !ok || value > 255 {
-					return tags, Parse_Error{kind = .Invalid_Argument}
+					return tags, Parse_Error {
+						kind = .Invalid_Argument,
+						pos = pos,
+						src = src,
+						raw = raw,
+						value = strings.trim_space(new_part),
+						type_name = "u8",
+					}
 				}
 				append(&tags, Tag_Color{color = Ansi256{auto_cast value}, ground = ground})
+			} else if strings.starts_with(new_part, "#") {
+				hex := new_part[1:]
+				r, g, b: u8
+				switch len(hex) {
+				case 3:
+					rv := strconv.parse_uint(hex[0:1], 16) or_else 999
+					gv := strconv.parse_uint(hex[1:2], 16) or_else 999
+					bv := strconv.parse_uint(hex[2:3], 16) or_else 999
+					if rv > 15 || gv > 15 || bv > 15 {
+						return tags, Parse_Error {
+							kind = .Invalid_Argument,
+							pos = pos,
+							src = src,
+							raw = raw,
+							value = hex,
+							type_name = "hex digit",
+						}
+					}
+					r = auto_cast (rv * 17)
+					g = auto_cast (gv * 17)
+					b = auto_cast (bv * 17)
+				case 6:
+					rv := strconv.parse_uint(hex[0:2], 16) or_else 999
+					gv := strconv.parse_uint(hex[2:4], 16) or_else 999
+					bv := strconv.parse_uint(hex[4:6], 16) or_else 999
+					if rv > 255 || gv > 255 || bv > 255 {
+						return tags, Parse_Error {
+							kind = .Invalid_Argument,
+							pos = pos,
+							src = src,
+							raw = raw,
+							value = hex,
+							type_name = "hex digit",
+						}
+					}
+					r = auto_cast rv
+					g = auto_cast gv
+					b = auto_cast bv
+				case:
+					return tags, Parse_Error {
+						kind = .Invalid_Argument_Count,
+						pos = pos,
+						src = src,
+						raw = raw,
+						expected = 3,
+						got = len(hex),
+					}
+				}
+				append(&tags, Tag_Color{color = Rgb{r, g, b}, ground = ground})
 			} else {
 				color: Maybe(Named_Color)
 				switch new_part {
@@ -159,7 +254,7 @@ parse_tags :: proc(
 				case "bright-white":
 					color = Named_Color.Bright_White
 				case:
-					return tags, Parse_Error{kind = .Unknown_Tag}
+					return tags, Parse_Error{kind = .Unknown_Tag, pos = pos, src = src, raw = raw}
 				}
 				if c, ok := color.?; ok {
 					append(&tags, Tag_Color{color = c, ground = ground})
@@ -168,4 +263,29 @@ parse_tags :: proc(
 		}
 	}
 	return tags, nil
+}
+
+split_tag_parts :: proc(raw: string, allocator := context.allocator) -> []string {
+	parts := make([dynamic]string, allocator)
+	depth := 0
+	start := 0
+	for i := 0; i < len(raw); i += 1 {
+		switch raw[i] {
+		case '(':
+			depth += 1
+		case ')':
+			depth -= 1
+		case ' ', '\t':
+			if depth == 0 && i > start {
+				append(&parts, raw[start:i])
+				start = i + 1
+			} else if depth == 0 {
+				start = i + 1
+			}
+		}
+	}
+	if start < len(raw) {
+		append(&parts, raw[start:])
+	}
+	return parts[:]
 }

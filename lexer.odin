@@ -10,9 +10,11 @@ Token_Text :: struct {
 }
 Token_Tag :: struct {
 	raw: string,
+	pos: int,
 }
 Token_Close :: struct {
 	raw: string,
+	pos: int,
 }
 
 Token :: union {
@@ -50,6 +52,7 @@ tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> ([]Token, May
 				append(&tokens, Token_Text{"["})
 				advance(lexer, 2)
 			} else {
+				tag_start := lexer.cursor
 				advance(lexer)
 				start := lexer.cursor
 				for lexer.cursor < len(lexer.src) && current(lexer^) != ']' {
@@ -58,16 +61,16 @@ tokenize :: proc(lexer: ^Lexer, allocator := context.allocator) -> ([]Token, May
 				if lexer.cursor >= len(lexer.src) {
 					return tokens[:], Parse_Error {
 						kind = .Unclosed_Tag,
-						pos = start,
+						pos = tag_start,
 						src = lexer.src,
 					}
 				}
 				if tag_content := lexer.src[start:lexer.cursor]; len(tag_content) == 0 {
 					append(&tokens, Token_Text{""})
 				} else if tag_content[0] == '/' {
-					append(&tokens, Token_Close{tag_content[1:]})
+					append(&tokens, Token_Close{tag_content[1:], start})
 				} else {
-					append(&tokens, Token_Tag{tag_content})
+					append(&tokens, Token_Tag{tag_content, start})
 				}
 				advance(lexer)
 			}
