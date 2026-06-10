@@ -188,7 +188,7 @@ All procedures accept a `reset` parameter (default `true`) that controls whether
 
 ## License
 
-This project is licensed under the [zlib](https://zlib.https://zlib.net/zlib_license.html) license.
+This project is licensed under the [zlib](https://zlib.net/zlib_license.html) license.
 
 Cheers, RazkarStudio.
 
