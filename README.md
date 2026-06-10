@@ -14,7 +14,7 @@ Add it to your project:
 odyn get razkar/ofarben --platform codeberg
 ```
 
-Import in your code:
+Import in your Odin code:
 
 ```odin
 import "deps:ofarben"
