@@ -12,6 +12,8 @@ Add it to your project:
 
 ```sh
 odyn get razkar/ofarben --platform codeberg
+# OR
+odyn get razkar-studio/farben
 ```
 
 Import in your Odin code:
@@ -25,7 +27,7 @@ import "deps:ofarben"
 Clone the repository and add it to your project:
 
 ```sh
-git clone https://codeberg.org/<you>/ofarben
+git clone https://codeberg.org/razkar/ofarben
 ```
 
 Then import it in your Odin code:
