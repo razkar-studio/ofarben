@@ -76,3 +76,31 @@ ansi256_to_rgb :: proc(index: u8) -> (r, g, b: u8) {
 		return
 	}
 }
+
+@(private)
+degrade_color :: proc(color: Color) -> Color {
+	switch _color_support {
+	case .None:
+		return color
+	case .Truecolor:
+		return color
+	case .Ansi256:
+		switch c in color {
+		case Rgb:
+			return Ansi256{degrade_to_ansi256(c.r, c.g, c.b)}
+		case Named_Color, Ansi256:
+			return color
+		}
+	case .Ansi16:
+		switch c in color {
+		case Rgb:
+			return degrade_to_ansi16(c.r, c.g, c.b)
+		case Ansi256:
+			r, g, b := ansi256_to_rgb(c.ansi)
+			return degrade_to_ansi16(r, g, b)
+		case Named_Color:
+			return color
+		}
+	}
+	return color
+}

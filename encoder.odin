@@ -7,6 +7,7 @@ encode :: proc(tags: []Tag, sb: ^strings.Builder) {
 	for tag in tags {
 		switch t in tag {
 		case Tag_Emphasis:
+			if _color_support == .None do continue
 			switch t.emphasis {
 			case .Bold:
 				strings.write_string(sb, "\x1b[1m")
@@ -32,7 +33,9 @@ encode :: proc(tags: []Tag, sb: ^strings.Builder) {
 				strings.write_string(sb, "\x1b[53m")
 			}
 		case Tag_Color:
-			switch c in t.color {
+			if _color_support == .None do continue
+			degraded := degrade_color(t.color)
+			switch c in degraded {
 			case Named_Color:
 				fg_code: int
 				switch c {
