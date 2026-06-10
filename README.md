@@ -1,6 +1,6 @@
 # ofarben
 
-The official Odin rewrite of the Rust [farben](https://github.com/razkar-studio/farben) terminal coloring library.
+The official Odin rewrite of the Rust [Farben](https://github.com/razkar-studio/farben) terminal coloring library.
 
 ## Installation
 
