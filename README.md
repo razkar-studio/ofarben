@@ -2,6 +2,12 @@
 
 The official Odin rewrite of the Rust [Farben](https://github.com/razkar-studio/farben) terminal coloring library.
 
+## Preview
+
+![Code](img/code.png)
+
+![Result](img/result.png)
+
 ## Installation
 
 ### Using Odyn (recommended)
