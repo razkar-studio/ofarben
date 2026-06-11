@@ -25,7 +25,7 @@ odyn get razkar-studio/farben
 Import in your Odin code:
 
 ```odin
-import "deps:ofarben"
+import frb "deps:ofarben"
 ```
 
 ### Manual
@@ -39,18 +39,18 @@ git clone https://codeberg.org/razkar/ofarben
 Then import it in your Odin code:
 
 ```odin
-import "path/to/ofarben"
+import frb "path/to/ofarben"
 ```
 
 ## Quick Start
 
 ```odin
-import "ofarben"
+import frb "ofarben"
 
 main :: proc() {
-    ofarben.cprintfln("[bold red]Error:[/] something went wrong.")
-    ofarben.cprintfln("[green]Success:[/] operation completed.")
-    ofarben.cprintfln("[bg:blue white]Highlighted text[/]")
+    frb.cprintfln("[bold red]Error:[/] something went wrong.")
+    frb.cprintfln("[green]Success:[/] operation completed.")
+    frb.cprintfln("[bg:blue white]Highlighted text[/]")
 }
 ```
 
