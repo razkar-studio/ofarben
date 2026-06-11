@@ -43,7 +43,7 @@ parse :: proc(
 			delete(tags)
 		case Token_Close:
 			if type.raw == "" {
-				strings.write_string(&sb, "\x1b[0m")
+				strings.write_string(&sb, "\e[0m")
 				clear(&_stack)
 			} else {
 				tags, _ := parse_tags(type.raw, type.pos, src, allocator)
@@ -56,12 +56,12 @@ parse :: proc(
 					}
 				}
 				delete(tags)
-				strings.write_string(&sb, "\x1b[0m")
+				strings.write_string(&sb, "\e[0m")
 				encode(_stack[:], &sb)
 			}
 		}
 	}
-	if !bleed {strings.write_string(&sb, "\x1b[0m"); clear(&_stack)}
+	if !bleed {strings.write_string(&sb, "\e[0m"); clear(&_stack)}
 	return strings.to_string(sb), nil
 }
 

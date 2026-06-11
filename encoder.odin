@@ -11,27 +11,27 @@ encode :: proc(tags: []Tag, sb: ^strings.Builder) {
 			if _color_support == .None do continue
 			switch t.emphasis {
 			case .Bold:
-				strings.write_string(sb, "\x1b[1m")
+				strings.write_string(sb, "\e[1m")
 			case .Dim:
-				strings.write_string(sb, "\x1b[2m")
+				strings.write_string(sb, "\e[2m")
 			case .Italic:
-				strings.write_string(sb, "\x1b[3m")
+				strings.write_string(sb, "\e[3m")
 			case .Underline:
-				strings.write_string(sb, "\x1b[4m")
+				strings.write_string(sb, "\e[4m")
 			case .Blink:
-				strings.write_string(sb, "\x1b[5m")
+				strings.write_string(sb, "\e[5m")
 			case .Rapid_Blink:
-				strings.write_string(sb, "\x1b[6m")
+				strings.write_string(sb, "\e[6m")
 			case .Reverse:
-				strings.write_string(sb, "\x1b[7m")
+				strings.write_string(sb, "\e[7m")
 			case .Invisible:
-				strings.write_string(sb, "\x1b[8m")
+				strings.write_string(sb, "\e[8m")
 			case .Strikethrough:
-				strings.write_string(sb, "\x1b[9m")
+				strings.write_string(sb, "\e[9m")
 			case .Double_Underline:
-				strings.write_string(sb, "\x1b[21m")
+				strings.write_string(sb, "\e[21m")
 			case .Overline:
-				strings.write_string(sb, "\x1b[53m")
+				strings.write_string(sb, "\e[53m")
 			}
 		case Tag_Color:
 			if _color_support == .None do continue
@@ -74,20 +74,20 @@ encode :: proc(tags: []Tag, sb: ^strings.Builder) {
 					fg_code = 97
 				}
 				code := fg_code + 10 if t.ground == .Background else fg_code
-				strings.write_string(sb, fmt.tprintf("\x1b[%dm", code))
+				strings.write_string(sb, fmt.tprintf("\e[%dm", code))
 			case Ansi256:
 				switch t.ground {
 				case .Foreground:
-					strings.write_string(sb, fmt.tprintf("\x1b[38;5;%dm", c.ansi))
+					strings.write_string(sb, fmt.tprintf("\e[38;5;%dm", c.ansi))
 				case .Background:
-					strings.write_string(sb, fmt.tprintf("\x1b[48;5;%dm", c.ansi))
+					strings.write_string(sb, fmt.tprintf("\e[48;5;%dm", c.ansi))
 				}
 			case Rgb:
 				switch t.ground {
 				case .Foreground:
-					strings.write_string(sb, fmt.tprintf("\x1b[38;2;%d;%d;%dm", c.r, c.g, c.b))
+					strings.write_string(sb, fmt.tprintf("\e[38;2;%d;%d;%dm", c.r, c.g, c.b))
 				case .Background:
-					strings.write_string(sb, fmt.tprintf("\x1b[48;2;%d;%d;%dm", c.r, c.g, c.b))
+					strings.write_string(sb, fmt.tprintf("\e[48;2;%d;%d;%dm", c.r, c.g, c.b))
 				}
 			}
 		}
