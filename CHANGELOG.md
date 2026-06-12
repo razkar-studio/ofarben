@@ -3,6 +3,12 @@ Changelog
 
 All notable changes will be documented here
 
+0.1.2: 2026-06-12
+-----------------
+
+### Fixed
+- Bug where `cprintln` prints two newlines instead of one
+
 0.1.1: 2026-06-12
 -----------------
 

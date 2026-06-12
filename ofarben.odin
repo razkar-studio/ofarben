@@ -187,7 +187,7 @@ cprint :: proc(args: ..any, sep := " ", flush := true, reset := true) {
 // - `flush`: Whether to flush stdout after writing
 // - `reset`: Whether to reset all styles after rendering
 cprintln :: proc(args: ..any, sep := " ", flush := true, reset := true) {
-	fmt.println(pipeline(fmt.tprintln(..args, sep = sep), !reset), flush = flush)
+	fmt.println(pipeline(fmt.tprint(..args, sep = sep), !reset), flush = flush)
 }
 
 // Formats and renders markup, writing the result to stderr.
