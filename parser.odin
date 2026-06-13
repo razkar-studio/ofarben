@@ -24,6 +24,7 @@ _ofarben_fini :: proc "contextless" () {
 parse :: proc(
 	src: string,
 	tokens: []Token,
+	support: Color_Support,
 	bleed := false,
 	allocator := context.allocator,
 ) -> (
@@ -34,7 +35,7 @@ parse :: proc(
 	for token in tokens {
 		switch type in token {
 		case Token_Text:
-			encode(_stack[:], &sb)
+			encode(_stack[:], &sb, support)
 			strings.write_string(&sb, type.text)
 		case Token_Tag:
 			tags, err := parse_tags(type.raw, type.pos, src, allocator)
@@ -43,7 +44,7 @@ parse :: proc(
 			delete(tags)
 		case Token_Close:
 			if type.raw == "" {
-				if _color_support != .None {strings.write_string(&sb, "\e[0m")}
+				if support != .None {strings.write_string(&sb, "\e[0m")}
 				clear(&_stack)
 			} else {
 				tags, _ := parse_tags(type.raw, type.pos, src, allocator)
@@ -56,12 +57,12 @@ parse :: proc(
 					}
 				}
 				delete(tags)
-				if _color_support != .None {strings.write_string(&sb, "\e[0m")}
-				encode(_stack[:], &sb)
+				if support != .None {strings.write_string(&sb, "\e[0m")}
+				encode(_stack[:], &sb, support)
 			}
 		}
 	}
-	if !bleed && _color_support != .None {strings.write_string(&sb, "\e[0m"); clear(&_stack)}
+	if !bleed && support != .None {strings.write_string(&sb, "\e[0m"); clear(&_stack)}
 	return strings.to_string(sb), nil
 }
 

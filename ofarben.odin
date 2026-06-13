@@ -17,12 +17,17 @@ import "core:os"
 import "core:strings"
 
 @(private = "file")
-pipeline :: proc(formatted: string, bleed := false, allocator := context.allocator) -> string {
+pipeline :: proc(
+	formatted: string,
+	bleed := false,
+	allocator := context.allocator,
+	support := _color_support,
+) -> string {
 	l := lexer_new(formatted)
 	tokens, tok_maybe_err := tokenize(&l)
 	err, ok := tok_maybe_err.?
 	if ok {fmt.eprintln(format_error(err)); os.exit(1)}
-	result, parse_maybe_err := parse(formatted, tokens, bleed, allocator)
+	result, parse_maybe_err := parse(formatted, tokens, support, bleed, allocator)
 	err, ok = parse_maybe_err.?
 	if ok {fmt.eprintln(format_error(err)); os.exit(1)}
 	return result
@@ -198,7 +203,10 @@ cprintln :: proc(args: ..any, sep := " ", flush := true, reset := true) {
 // - `flush`: Whether to flush stderr after writing
 // - `reset`: Whether to reset all styles after rendering
 ceprintf :: proc(markup: string, args: ..any, flush := true, reset := true) {
-	fmt.eprintf(pipeline(fmt.tprintf(markup, ..args), !reset), flush = flush)
+	fmt.eprintf(
+		pipeline(fmt.tprintf(markup, ..args), !reset, support = _color_support_stderr),
+		flush = flush,
+	)
 }
 
 // Formats and renders markup, writing the result to stderr with a newline.
@@ -209,7 +217,10 @@ ceprintf :: proc(markup: string, args: ..any, flush := true, reset := true) {
 // - `flush`: Whether to flush stderr after writing
 // - `reset`: Whether to reset all styles after rendering
 ceprintfln :: proc(markup: string, args: ..any, flush := true, reset := true) {
-	fmt.eprintfln(pipeline(fmt.tprintf(markup, ..args), !reset), flush = flush)
+	fmt.eprintfln(
+		pipeline(fmt.tprintf(markup, ..args), !reset, support = _color_support_stderr),
+		flush = flush,
+	)
 }
 
 // Formats args and renders markup, writing the result to stderr.
@@ -220,7 +231,10 @@ ceprintfln :: proc(markup: string, args: ..any, flush := true, reset := true) {
 // - `flush`: Whether to flush stderr after writing
 // - `reset`: Whether to reset all styles after rendering
 ceprint :: proc(args: ..any, sep := " ", flush := true, reset := true) {
-	fmt.eprint(pipeline(fmt.tprint(..args, sep = sep), !reset), flush = flush)
+	fmt.eprint(
+		pipeline(fmt.tprint(..args, sep = sep), !reset, support = _color_support_stderr),
+		flush = flush,
+	)
 }
 
 // Formats args and renders markup, writing the result to stderr with a newline.
@@ -231,7 +245,10 @@ ceprint :: proc(args: ..any, sep := " ", flush := true, reset := true) {
 // - `flush`: Whether to flush stderr after writing
 // - `reset`: Whether to reset all styles after rendering
 ceprintln :: proc(args: ..any, sep := " ", flush := true, reset := true) {
-	fmt.eprintln(pipeline(fmt.tprintln(..args, sep = sep), !reset), flush = flush)
+	fmt.eprintln(
+		pipeline(fmt.tprint(..args, sep = sep), !reset, support = _color_support_stderr),
+		flush = flush,
+	)
 }
 
 // Formats args and renders markup, returning a heap-allocated styled string.

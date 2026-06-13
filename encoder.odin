@@ -4,11 +4,11 @@ import "core:fmt"
 import "core:strings"
 
 @(private)
-encode :: proc(tags: []Tag, sb: ^strings.Builder) {
+encode :: proc(tags: []Tag, sb: ^strings.Builder, support: Color_Support) {
 	for tag in tags {
 		switch t in tag {
 		case Tag_Emphasis:
-			if _color_support == .None do continue
+			if support == .None do continue
 			switch t.emphasis {
 			case .Bold:
 				strings.write_string(sb, "\e[1m")
@@ -34,8 +34,8 @@ encode :: proc(tags: []Tag, sb: ^strings.Builder) {
 				strings.write_string(sb, "\e[53m")
 			}
 		case Tag_Color:
-			if _color_support == .None do continue
-			degraded := degrade_color(t.color)
+			if support == .None do continue
+			degraded := degrade_color(t.color, support)
 			switch c in degraded {
 			case Named_Color:
 				fg_code: int

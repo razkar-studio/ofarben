@@ -81,8 +81,8 @@ ansi256_to_rgb :: proc(index: u8) -> (r, g, b: u8) {
 }
 
 @(private)
-degrade_color :: proc(color: Color) -> Color {
-	switch _color_support {
+degrade_color :: proc(color: Color, support: Color_Support) -> Color {
+	switch support {
 	case .None:
 		return color
 	case .Truecolor:

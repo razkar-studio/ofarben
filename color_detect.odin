@@ -10,10 +10,20 @@ import sys_windows "core:sys/windows"
 @(private)
 _color_support: Color_Support
 
+@(private)
+_color_support_stderr: Color_Support
+
 @(init)
 _detect_color_support_init :: proc "contextless" () {
 	context = runtime.default_context()
-	_color_support = detect_color_support()
+	_color_support = detect_color_support(.Stdout)
+	_color_support_stderr = detect_color_support(.Stderr)
+}
+
+@(private)
+Output_Stream :: enum {
+	Stdout,
+	Stderr,
 }
 
 @(private)
@@ -25,7 +35,10 @@ Color_Support :: enum {
 }
 
 @(private)
-detect_color_support :: proc(allocator := context.allocator) -> Color_Support {
+detect_color_support :: proc(
+	stream := Output_Stream.Stdout,
+	allocator := context.allocator,
+) -> Color_Support {
 	_, no_color_found := os.lookup_env_alloc("NO_COLOR", allocator)
 	if no_color_found do return .None
 
@@ -34,10 +47,11 @@ detect_color_support :: proc(allocator := context.allocator) -> Color_Support {
 
 	is_tty: bool
 	when ODIN_OS == .Windows {
-		is_tty =
-			sys_windows.GetFileType(sys_windows.HANDLE(os.stdout)) == sys_windows.FILE_TYPE_CHAR
+		handle := os.stdout if stream == .Stdout else os.stderr
+		is_tty = sys_windows.GetFileType(sys_windows.HANDLE(handle)) == sys_windows.FILE_TYPE_CHAR
 	} else {
-		is_tty = auto_cast posix.isatty(posix.STDOUT_FILENO)
+		fd: posix.FD = posix.STDOUT_FILENO if stream == .Stdout else posix.STDERR_FILENO
+		is_tty = auto_cast posix.isatty(fd)
 	}
 	if !force_found && !is_tty do return .None
 
